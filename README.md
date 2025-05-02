@@ -1,44 +1,128 @@
-# Scrapii Chrome Extension
+# Scrapii: AI-Powered Web Data Extraction
 
-This folder contains the Chrome extension for Scrapii, an AI-powered web data extraction tool.
+Scrapii is a Chrome extension that uses AI to analyze web pages, automatically detect extractable elements, and allow for seamless data extraction with pagination support and multiple export options.
 
-## How to Install
+## Features
 
-1. Open Chrome browser
-2. Go to `chrome://extensions/`
-3. Enable "Developer mode" in the top-right corner
-4. Click "Load unpacked"
-5. Select this directory (the chrome-extension folder)
+- **AI-Powered Element Detection**: Automatically identifies extractable elements like prices, titles, images, etc.
+- **Pagination Intelligence**: Detects pagination patterns to enable multi-page data extraction
+- **Export Versatility**: Export to CSV, Excel, or directly to PostgreSQL database (premium)
+- **Live Preview**: See extracted data in real-time before performing full extractions
+- **Customization**: Add custom elements or modify detected ones for precise extractions
 
-## Extension Structure
+## Project Structure
 
-- `manifest.json`: Configuration file for the extension
-- `popup.html`: UI for the extension popup
-- `popup.css`: Styling for the popup
-- `popup.js`: JavaScript for the popup interface
-- `background.js`: Background service worker
-- `content.js`: Content script injected into web pages
-- `connector.js`: API communication with the backend server
-- `icons/`: Directory containing icon files
+The project consists of two main components:
+1. **Chrome Extension**: Client-side components for interacting with web pages (in the root directory)
+2. **Backend Server**: API server with OpenAI integration for AI-powered analysis
 
-## Permissions
+### Chrome Extension Components:
+- `manifest.json`: Extension configuration
+- `popup.html/css/js`: UI for controlling the extension
+- `background.js`: Handles background events and communication
+- `content.js`: Interacts with page content
+- `connector.js`: Manages API communication
+- `icons/`: Directory containing extension icons
 
-The extension requires the following permissions:
-- `activeTab`: To access the current tab's content
-- `scripting`: To run scripts on the active tab
-- `storage`: To store preferences and extraction data
-- `downloads`: To download exported data files
-- Host permissions for HTTP/HTTPS: To communicate with websites and the backend server
+### Backend Server Components:
+- `server/index.ts`: Express server setup
+- `server/routes.ts`: API endpoint definitions
+- `server/openai.ts`: Integration with OpenAI for AI analysis
+- `shared/schema.ts`: Database schema definitions using Drizzle ORM
 
-## Usage
+## Installation
 
-1. Navigate to a webpage you want to extract data from
-2. Click the Scrapii icon in your Chrome toolbar
-3. Select elements to extract
-4. Configure pagination options if needed
-5. Click "Start Extraction"
-6. Export the data in your preferred format
+### Development Setup
 
-## Backend Server
+1. Clone this repository:
+   ```
+   git clone https://github.com/yourusername/scrapii.git
+   cd scrapii
+   ```
 
-The extension requires a running backend server at http://localhost:5000 by default. This can be changed in connector.js if needed.
+2. Install dependencies:
+   ```
+   npm install
+   ```
+
+3. Start the backend server:
+   ```
+   npm run dev
+   ```
+
+4. Load the extension in Chrome:
+   - Open Chrome and go to `chrome://extensions/`
+   - Enable "Developer mode" (top right toggle)
+   - Click "Load unpacked" and select the root directory of this project
+   - The extension should be installed with the name "Scrapii"
+
+## Usage Guide
+
+1. **Analyzing a Page**:
+   - Navigate to any webpage you want to scrape
+   - Click the Scrapii extension icon in your Chrome toolbar
+   - The extension will automatically analyze the page using AI
+
+2. **Selecting Elements**:
+   - In the popup, you'll see detected elements like text, images, prices, etc.
+   - Check the elements you want to extract
+   - Use the "Add Element" button to add custom elements
+
+3. **Configuring Pagination**:
+   - If pagination is detected, you can enable the pagination feature
+   - Choose to extract from:
+     - Single page (current page only)
+     - All pages (extract from all detected pages)
+     - Custom range (specify a range of pages)
+
+4. **Extracting Data**:
+   - Click "Start Extraction" to begin the data extraction process
+   - Preview the extracted data in the "Data Preview" panel
+
+5. **Exporting Data**:
+   - Use the "Export" panel to export your data
+   - Options include CSV, Excel, or PostgreSQL (premium)
+
+## Development
+
+### Adding New Features
+
+To add new features to the extension:
+
+1. Update the relevant components:
+   - For UI changes, modify `popup.html` and `popup.js`
+   - For background operations, update `background.js`
+   - For page interaction, modify `content.js`
+
+2. Add new API endpoints by editing `server/routes.ts`
+
+### Testing
+
+To test the extension:
+
+1. Start the backend server (`npm run dev`)
+2. Load the extension in Chrome
+3. Navigate to a test website
+4. Click the extension icon and verify functionality
+
+## Troubleshooting
+
+If you encounter issues loading the extension in Chrome:
+
+1. Make sure "Developer mode" is enabled in Chrome's extensions page
+2. Check that you're selecting the root project directory when using "Load unpacked"
+3. After making changes to extension files, click the refresh icon on the extension in the Chrome extensions page
+4. Check Chrome's console for any error messages
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- OpenAI for providing the GPT models used for AI analysis
+- Chrome Extension APIs for making browser extension development accessible
