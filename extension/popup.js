@@ -1,5 +1,4 @@
-// API base URL - should be updated to point to your server
-const API_BASE_URL = 'http://localhost:5000/api';
+// Use the ScrapiiAPI object from connector.js
 
 // DOM Elements
 const statusPanel = document.getElementById('statusPanel');
@@ -775,19 +774,22 @@ function refreshPreview() {
     </div>
   `;
   
-  // Get current tab and request data extraction
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    chrome.tabs.sendMessage(tabs[0].id, {
-      action: 'extractData',
-      elements: selectedElements
-    }, (response) => {
-      if (response && response.data) {
-        updatePreview(response.data);
+  // Get element IDs
+  const elementIds = selectedElements.map(el => el.id);
+  
+  // Use our API connector to fetch preview data
+  ScrapiiAnalyzer.getDataPreview(currentUrl, elementIds)
+    .then(data => {
+      if (data && data.length > 0) {
+        updatePreview(data);
       } else {
-        previewContainer.innerHTML = '<p>Failed to extract preview data.</p>';
+        previewContainer.innerHTML = '<p>No data found for the selected elements.</p>';
       }
+    })
+    .catch(error => {
+      console.error('Error getting preview:', error);
+      previewContainer.innerHTML = '<p>Failed to extract preview data.</p>';
     });
-  });
 }
 
 // Start extraction
@@ -807,138 +809,173 @@ function startExtraction() {
   
   // Get pagination options
   chrome.storage.local.get('scrapingOptions', (result) => {
-    const options = result.scrapingOptions;
+    const paginationOptions = result.scrapingOptions;
     
-    // Get current tab and request data extraction
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(tabs[0].id, {
-        action: 'extractData',
-        elements: selectedElements
-      }, (response) => {
-        if (response && response.data) {
+    // Use the API connector to extract data
+    ScrapiiAnalyzer.extractData(currentUrl, selectedElements, paginationOptions)
+      .then(data => {
+        if (data && data.length > 0) {
           // Save extracted data
           chrome.storage.local.set({
-            extractedData: response.data,
+            extractedData: data,
             extractionTimestamp: Date.now(),
             extractionUrl: currentUrl,
             extractionElements: selectedElements
           });
           
           // Update UI
-          updatePreview(response.data);
-          
-          // Enable button
-          startExtractionButton.disabled = false;
-          startExtractionButton.innerHTML = `
-            <span class="material-icons">play_arrow</span>
-            Start Extraction
-          `;
+          updatePreview(data);
           
           // Show success message
-          showNotification('Data extracted successfully!');
+          showNotification(`Data extracted successfully! (${data.length} items)`);
         } else {
-          // Handle error
-          startExtractionButton.disabled = false;
-          startExtractionButton.innerHTML = `
-            <span class="material-icons">play_arrow</span>
-            Start Extraction
-          `;
-          
-          showNotification('Failed to extract data', true);
+          showNotification('No data was extracted. Try adjusting your element selection.', true);
         }
+      })
+      .catch(error => {
+        console.error('Error extracting data:', error);
+        showNotification('Failed to extract data', true);
+      })
+      .finally(() => {
+        // Re-enable button
+        startExtractionButton.disabled = false;
+        startExtractionButton.innerHTML = `
+          <span class="material-icons">play_arrow</span>
+          Start Extraction
+        `;
       });
-    });
   });
 }
 
 // Export as CSV
 function exportAsCsv() {
-  chrome.storage.local.get('extractedData', (result) => {
+  chrome.storage.local.get(['extractedData', 'extractionElements', 'extractionUrl', 'scrapingOptions'], (result) => {
     if (!result.extractedData || result.extractedData.length === 0) {
       showNotification('No data to export. Extract data first.', true);
       return;
     }
     
-    try {
-      // Convert data to CSV
-      const data = result.extractedData;
-      const headers = Object.keys(data[0]);
-      
-      let csv = headers.join(',') + '\n';
-      
-      data.forEach(row => {
-        const values = headers.map(header => {
-          const value = row[header] || '';
-          // Escape quotes and wrap in quotes if needed
-          if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-            return `"${value.replace(/"/g, '""')}"`;
-          }
-          return value;
+    // If we already have the data locally, we can export it directly
+    if (result.extractedData && result.extractedData.length > 0) {
+      try {
+        // Convert data to CSV
+        const data = result.extractedData;
+        const headers = Object.keys(data[0]);
+        
+        let csv = headers.join(',') + '\n';
+        
+        data.forEach(row => {
+          const values = headers.map(header => {
+            const value = row[header] || '';
+            // Escape quotes and wrap in quotes if needed
+            if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+              return `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+          });
+          csv += values.join(',') + '\n';
         });
-        csv += values.join(',') + '\n';
+        
+        // Create download
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `scrapii-export-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showNotification('CSV exported successfully!');
+      } catch (error) {
+        console.error('Error exporting CSV:', error);
+        showNotification('Failed to export CSV', true);
+      }
+    } 
+    // If we need to fetch fresh data from the server
+    else if (result.extractionUrl && result.extractionElements) {
+      // Use the API connector to export
+      ScrapiiAnalyzer.exportToCsv(
+        result.extractionUrl, 
+        result.extractionElements, 
+        result.scrapingOptions
+      )
+      .then(() => {
+        showNotification('CSV exported successfully!');
+      })
+      .catch(error => {
+        console.error('Error exporting CSV:', error);
+        showNotification('Failed to export CSV', true);
       });
-      
-      // Create download
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `scrapii-export-${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      showNotification('CSV exported successfully!');
-    } catch (error) {
-      console.error('Error exporting CSV:', error);
-      showNotification('Failed to export CSV', true);
+    } else {
+      showNotification('No data available for export', true);
     }
   });
 }
 
-// Export as Excel (simplified as CSV for demo)
+// Export as Excel
 function exportAsExcel() {
-  chrome.storage.local.get('extractedData', (result) => {
+  chrome.storage.local.get(['extractedData', 'extractionElements', 'extractionUrl', 'scrapingOptions'], (result) => {
     if (!result.extractedData || result.extractedData.length === 0) {
       showNotification('No data to export. Extract data first.', true);
       return;
     }
     
-    try {
-      // For demo, we'll just use CSV with a different extension
-      // In a real extension, this would use a library like SheetJS to create Excel files
-      const data = result.extractedData;
-      const headers = Object.keys(data[0]);
-      
-      let csv = headers.join(',') + '\n';
-      
-      data.forEach(row => {
-        const values = headers.map(header => {
-          const value = row[header] || '';
-          if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-            return `"${value.replace(/"/g, '""')}"`;
-          }
-          return value;
-        });
-        csv += values.join(',') + '\n';
+    // Use the API connector for more complete Excel export
+    if (result.extractionUrl && result.extractionElements) {
+      // Use the API connector to export
+      ScrapiiAnalyzer.exportToExcel(
+        result.extractionUrl, 
+        result.extractionElements, 
+        result.scrapingOptions
+      )
+      .then(() => {
+        showNotification('Excel exported successfully!');
+      })
+      .catch(error => {
+        console.error('Error exporting Excel:', error);
+        showNotification('Failed to export Excel', true);
       });
-      
-      // Create download
-      const blob = new Blob([csv], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `scrapii-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      showNotification('Excel exported successfully!');
-    } catch (error) {
-      console.error('Error exporting Excel:', error);
-      showNotification('Failed to export Excel', true);
+    } 
+    // Fallback to local CSV export with Excel extension
+    else if (result.extractedData && result.extractedData.length > 0) {
+      try {
+        // Convert data to CSV
+        const data = result.extractedData;
+        const headers = Object.keys(data[0]);
+        
+        let csv = headers.join(',') + '\n';
+        
+        data.forEach(row => {
+          const values = headers.map(header => {
+            const value = row[header] || '';
+            if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+              return `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+          });
+          csv += values.join(',') + '\n';
+        });
+        
+        // Create download
+        const blob = new Blob([csv], { type: 'application/vnd.ms-excel' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `scrapii-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showNotification('Excel exported successfully!');
+      } catch (error) {
+        console.error('Error exporting Excel:', error);
+        showNotification('Failed to export Excel', true);
+      }
+    } else {
+      showNotification('No data available for export', true);
     }
   });
 }
@@ -963,17 +1000,27 @@ function exportToDatabase() {
     return;
   }
   
-  chrome.storage.local.get('extractedData', (result) => {
-    if (!result.extractedData || result.extractedData.length === 0) {
+  chrome.storage.local.get(['extractedData', 'extractionElements', 'extractionUrl', 'scrapingOptions'], (result) => {
+    if (!result.extractedData && (!result.extractionUrl || !result.extractionElements)) {
       showNotification('No data to export. Extract data first.', true);
       return;
     }
     
-    // In a real extension, this would make an API call to the backend
-    // For demo, we'll just simulate success
-    setTimeout(() => {
-      showNotification(`Data exported to database successfully! (${result.extractedData.length} rows)`);
-    }, 1000);
+    // Use API connector to export to database
+    ScrapiiAnalyzer.exportToDatabase(
+      result.extractionUrl || currentUrl,
+      result.extractionElements || currentElements.filter(el => el.selected),
+      result.scrapingOptions,
+      connectionId,
+      tableName
+    )
+    .then(result => {
+      showNotification(`Data exported to database successfully! (${result.rowsInserted || 0} rows)`);
+    })
+    .catch(error => {
+      console.error('Error exporting to database:', error);
+      showNotification('Failed to export to database', true);
+    });
   });
 }
 
