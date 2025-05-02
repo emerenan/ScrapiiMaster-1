@@ -3,6 +3,37 @@
 // Load the connector API
 importScripts('connector.js');
 
+// Helper function to compute Levenshtein distance between two strings
+// Used to detect significant changes in page titles
+function levenshteinDistance(a, b) {
+  if (!a || !b) return 0;
+  
+  const matrix = [];
+  
+  // Initialize matrix
+  for (let i = 0; i <= a.length; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= b.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  // Fill in the rest of the matrix
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i-1][j] + 1,     // deletion
+        matrix[i][j-1] + 1,     // insertion
+        matrix[i-1][j-1] + cost // substitution
+      );
+    }
+  }
+  
+  return matrix[a.length][b.length];
+}
+
 // Listen for installation event
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Scrapii extension installed');
@@ -103,6 +134,88 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     // Send to server for AI-powered analysis
     analyzePageWithAI(html, url);
+    
+    return true;
+  }
+  
+  // Handle content script loaded message
+  if (message.action === 'contentScriptLoaded') {
+    const { url, title } = message.data;
+    
+    // Store basic page info
+    const pageInfo = { url, title };
+    chrome.storage.local.set({ pageInfo });
+    
+    // Get the full HTML content and analyze the page
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs.length === 0) return;
+      
+      chrome.tabs.sendMessage(tabs[0].id, { action: 'getPageHTML' }, (response) => {
+        if (response && response.html) {
+          // Send to server for AI analysis
+          analyzePageWithAI(response.html, url);
+        }
+      });
+    });
+    
+    return true;
+  }
+  
+  // Handle page content changed message (for single-page apps)
+  if (message.action === 'pageContentChanged') {
+    const { url, title } = message.data;
+    
+    // Check if URL has changed since last analyzed page
+    chrome.storage.local.get('pageInfo', (result) => {
+      const lastPageInfo = result.pageInfo || {};
+      
+      // Only re-analyze if URL changed or title changed significantly
+      if (lastPageInfo.url !== url || 
+          (lastPageInfo.title && lastPageInfo.title !== title && 
+           levenshteinDistance(lastPageInfo.title, title) > 10)) {
+        
+        // Get updated HTML and analyze
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs.length === 0) return;
+          
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'getPageHTML' }, (response) => {
+            if (response && response.html) {
+              // Update page info
+              const pageInfo = { url, title };
+              chrome.storage.local.set({ pageInfo });
+              
+              // Send to server for AI analysis
+              analyzePageWithAI(response.html, url);
+            }
+          });
+        });
+      }
+    });
+    
+    return true;
+  }
+  
+  // Handle selector generated message
+  if (message.action === 'selectorGenerated') {
+    const { selector, text, tagName } = message;
+    
+    // Store for use in the add element dialog
+    chrome.storage.local.set({ 
+      generatedSelector: { 
+        selector, 
+        text, 
+        tagName,
+        timestamp: Date.now()
+      } 
+    });
+    
+    // Notify popup
+    chrome.runtime.sendMessage({
+      action: 'selectorGenerated',
+      selector,
+      text,
+      tagName
+    });
     
     return true;
   }

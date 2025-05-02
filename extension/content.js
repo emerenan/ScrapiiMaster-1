@@ -5,10 +5,22 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getPageHTML') {
     // Get the page HTML and send it back
+    const html = document.documentElement.outerHTML;
+    const url = window.location.href;
+    const title = document.title;
+    
+    // Get favicon
+    let favicon = null;
+    const faviconEl = document.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
+    if (faviconEl) {
+      favicon = faviconEl.href;
+    }
+    
     sendResponse({
-      html: document.documentElement.outerHTML,
-      url: window.location.href,
-      title: document.title
+      html,
+      url,
+      title,
+      favicon
     });
     return true;
   }
@@ -188,3 +200,88 @@ chrome.runtime.sendMessage({
     title: document.title
   }
 });
+
+// Mutation observer to detect DOM changes (for single-page applications)
+const observer = new MutationObserver(mutations => {
+  // If significant changes were made to the page, notify the extension
+  let significantChanges = false;
+  
+  for (const mutation of mutations) {
+    // Check if there were changes to the title element
+    if (mutation.target.nodeName === 'TITLE') {
+      significantChanges = true;
+      break;
+    }
+    
+    // Check if a large number of nodes were added/removed
+    if (mutation.addedNodes.length > 5 || mutation.removedNodes.length > 5) {
+      significantChanges = true;
+      break;
+    }
+  }
+  
+  if (significantChanges) {
+    chrome.runtime.sendMessage({
+      action: 'pageContentChanged',
+      data: {
+        url: window.location.href,
+        title: document.title
+      }
+    });
+  }
+});
+
+// Start observing DOM changes
+observer.observe(document, {
+  childList: true,
+  subtree: true
+});
+
+// Add click handler for testing selectors when the user is previewing elements
+document.addEventListener('click', event => {
+  // Check if we're in "selector preview mode" (set by the extension)
+  chrome.storage.local.get('selectorPreviewMode', result => {
+    if (result.selectorPreviewMode) {
+      const path = [];
+      let element = event.target;
+      
+      // Build CSS path to the clicked element
+      while (element && element.nodeType === Node.ELEMENT_NODE) {
+        let selector = element.nodeName.toLowerCase();
+        
+        if (element.id) {
+          selector += `#${element.id}`;
+          path.unshift(selector);
+          break; // ID is unique, no need to go further
+        } else {
+          let sibling = element;
+          let nth = 1;
+          
+          // Count siblings with same tag name
+          while (sibling = sibling.previousElementSibling) {
+            if (sibling.nodeName === element.nodeName) nth++;
+          }
+          
+          if (nth > 1) selector += `:nth-of-type(${nth})`;
+        }
+        
+        path.unshift(selector);
+        element = element.parentNode;
+      }
+      
+      const cssSelector = path.join(' > ');
+      
+      // Send the selector back to the extension
+      chrome.runtime.sendMessage({
+        action: 'selectorGenerated',
+        selector: cssSelector,
+        text: event.target.textContent.trim(),
+        tagName: event.target.tagName.toLowerCase()
+      });
+      
+      // Prevent default click behavior during preview mode
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  });
+}, true); // Use capturing to get the event before other handlers

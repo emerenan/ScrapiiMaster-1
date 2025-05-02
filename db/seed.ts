@@ -7,7 +7,7 @@ async function seed() {
 
     // Create a demo user
     const existingUser = await db.query.users.findFirst({
-      where: (users) => users.username === "demo"
+      where: (users) => ({ username: users.username, value: "demo" })
     });
 
     if (!existingUser) {
@@ -37,7 +37,7 @@ async function seed() {
       
       // Check if database connection exists
       const existingConnection = await db.query.databaseConnections.findFirst({
-        where: (connections) => connections.userId === existingUser.id
+        where: (connections) => ({ field: connections.userId, value: existingUser.id })
       });
       
       if (!existingConnection) {
