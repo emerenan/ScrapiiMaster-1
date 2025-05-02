@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 217 89% 61%; /* Chrome blue: #4285F4 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 137 67% 43%; /* Success green: #34A853 */
+    --secondary-foreground: 0 0% 100%;
+
+    --accent: 45 95% 50%; /* Warning yellow: #FBBC05 */
+    --accent-foreground: 222.2 84% 4.9%;
+
+    --muted: 240 3% 96%; /* Light gray: #F1F3F4 */
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --destructive: 0 84.2% 60.2%; /* Error red: #EA4335 */
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 3% 87%; /* Border: #DADCE0 */
+    --input: 214.3 31.8% 91.4%;
+    --ring: 217 89% 61%;
+
+    --chart-1: 221 83% 53%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 48 96% 53%;
+    --chart-4: 339 90% 51%;
+    --chart-5: 271 91% 65%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 96.1%;
+    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 221 83% 53%;
+
+    --text: 222 14% 14%; /* #202124 */
+    --light-gray: 220 11% 95%; /* #F1F3F4 */
+
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Roboto', sans-serif;
+    color: hsl(var(--text));
+  }
+
+  .section-title {
+    font-family: 'Google Sans', sans-serif;
+  }
+
+  .pagination-option.selected {
+    background-color: hsl(var(--primary));
+    color: white;
+  }
+
+  .pagination-option:hover:not(.selected) {
+    background-color: hsl(var(--light-gray));
+  }
+}
