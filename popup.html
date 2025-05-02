@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scrapii</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header Section -->
+    <header class="header">
+      <div class="header-left">
+        <span class="material-icons">data_exploration</span>
+        <h1>Scrapii</h1>
+      </div>
+      <div class="header-right">
+        <button class="icon-button" id="settingsButton" title="Settings">
+          <span class="material-icons">settings</span>
+        </button>
+        <button class="icon-button" id="helpButton" title="Help">
+          <span class="material-icons">help_outline</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Status Panel -->
+      <section class="panel" id="statusPanel">
+        <h2 class="section-title">
+          <span class="material-icons">info</span>
+          Page Status
+        </h2>
+        <div class="status-content">
+          <div id="pageInfo" class="page-info-container">
+            <div class="page-info-loading">
+              <div class="skeleton"></div>
+              <div class="skeleton"></div>
+            </div>
+          </div>
+          <button class="button secondary" id="rescanButton">
+            <span class="material-icons">refresh</span>
+            Rescan Page
+          </button>
+        </div>
+      </section>
+
+      <!-- AI Analysis Panel -->
+      <section class="panel" id="aiAnalysisPanel">
+        <div class="panel-header">
+          <h2 class="section-title">
+            <span class="material-icons">psychology</span>
+            AI Analysis
+          </h2>
+          <div class="toggle-switch">
+            <input type="checkbox" id="aiToggle" checked>
+            <label for="aiToggle"></label>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div id="elementsContainer" class="elements-container">
+            <div class="elements-loading">
+              <div class="skeleton"></div>
+              <div class="skeleton"></div>
+              <div class="skeleton"></div>
+            </div>
+          </div>
+          <div class="elements-actions">
+            <button class="button outline" id="addElementButton">
+              <span class="material-icons">add</span>
+              Add Element
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pagination Panel -->
+      <section class="panel" id="paginationPanel">
+        <div class="panel-header">
+          <h2 class="section-title">
+            <span class="material-icons">pages</span>
+            Pagination
+          </h2>
+          <div class="toggle-switch">
+            <input type="checkbox" id="paginationToggle" checked>
+            <label for="paginationToggle"></label>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div id="paginationInfo" class="pagination-info">
+            <div class="pagination-loading">
+              <div class="skeleton"></div>
+            </div>
+          </div>
+          <div class="pagination-options">
+            <div class="radio-group">
+              <div class="radio-option">
+                <input type="radio" name="paginationOption" id="singlePage" value="single" checked>
+                <label for="singlePage">Current page only</label>
+              </div>
+              <div class="radio-option">
+                <input type="radio" name="paginationOption" id="allPages" value="all">
+                <label for="allPages">All pages</label>
+              </div>
+              <div class="radio-option">
+                <input type="radio" name="paginationOption" id="customRange" value="custom">
+                <label for="customRange">Custom range</label>
+              </div>
+            </div>
+            <div id="customRangeControls" class="custom-range-controls hidden">
+              <div class="range-input">
+                <label for="fromPage">From</label>
+                <input type="number" id="fromPage" min="1" value="1">
+              </div>
+              <div class="range-input">
+                <label for="toPage">To</label>
+                <input type="number" id="toPage" min="1" value="5">
+              </div>
+              <div class="limit-control">
+                <input type="checkbox" id="limitEnabled" checked>
+                <label for="limitEnabled">Limit pages</label>
+                <input type="number" id="pageLimit" min="1" value="10">
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Data Preview Panel -->
+      <section class="panel" id="dataPreviewPanel">
+        <h2 class="section-title">
+          <span class="material-icons">table_chart</span>
+          Data Preview
+        </h2>
+        <div class="panel-content">
+          <div id="previewContainer" class="preview-container">
+            <div class="preview-loading">
+              <div class="skeleton"></div>
+              <div class="skeleton"></div>
+            </div>
+          </div>
+          <button class="button outline" id="refreshPreviewButton">
+            <span class="material-icons">refresh</span>
+            Refresh Preview
+          </button>
+        </div>
+      </section>
+
+      <!-- Export Panel -->
+      <section class="panel" id="exportPanel">
+        <h2 class="section-title">
+          <span class="material-icons">download</span>
+          Export Options
+        </h2>
+        <div class="panel-content">
+          <div class="export-actions">
+            <button class="button outline" id="exportCsvButton">
+              <span class="material-icons">description</span>
+              Export as CSV
+            </button>
+            <button class="button outline" id="exportExcelButton">
+              <span class="material-icons">grid_on</span>
+              Export as Excel
+            </button>
+          </div>
+          
+          <!-- Database Export (Premium Feature) -->
+          <div class="premium-feature">
+            <div class="premium-header">
+              <div class="premium-title">
+                <span class="material-icons">star</span>
+                <span>Database Export</span>
+              </div>
+              <span class="premium-badge">Premium</span>
+            </div>
+            
+            <div id="premiumContent" class="premium-content">
+              <div class="premium-upsell">
+                <p>Connect to your PostgreSQL database for direct data export</p>
+                <button class="button primary small" id="upgradeButton">Upgrade</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer Section -->
+    <footer class="footer">
+      <div class="footer-left">
+        <span class="selected-count">0 items selected</span>
+        <span class="history-link" id="viewHistoryLink">
+          <span class="material-icons">history</span>
+          View extraction history
+        </span>
+      </div>
+      <button class="button primary" id="startExtractionButton" disabled>
+        <span class="material-icons">play_arrow</span>
+        Start Extraction
+      </button>
+    </footer>
+  </div>
+
+  <!-- Modal dialogs would be added here -->
+  <div id="elementPreviewDialog" class="dialog hidden">
+    <!-- Dialog content would be added dynamically -->
+  </div>
+  
+  <div id="addElementDialog" class="dialog hidden">
+    <!-- Dialog content would be added dynamically -->
+  </div>
+
+  <script src="connector.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
