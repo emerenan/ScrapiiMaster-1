@@ -1,4 +1,5 @@
-// Use the ScrapiiAPI object from connector.js
+// Import the API from connector.js
+import { ScrapiiAPI, ScrapiiAnalyzer } from './connector.js';
 
 // DOM Elements
 const statusPanel = document.getElementById('statusPanel');

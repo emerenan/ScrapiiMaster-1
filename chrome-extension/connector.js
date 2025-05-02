@@ -259,5 +259,5 @@ const Analyzer = {
 };
 
 // Export the API and Analyzer objects
-window.ScrapiiAPI = API;
-window.ScrapiiAnalyzer = Analyzer;
+export const ScrapiiAPI = API;
+export const ScrapiiAnalyzer = Analyzer;
